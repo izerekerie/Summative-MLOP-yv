@@ -177,6 +177,38 @@ def save_images_batch(images_data: List[Tuple[bytes, str, str]]) -> List[int]:
         return_db_connection(conn)
 
 
+def get_example_image_for_class(class_name: str, limit: int = 1) -> Optional[bytes]:
+    """
+    Get an example image for a specific class.
+    
+    Args:
+        class_name: Class name to get example for
+        limit: Number of examples to return (default: 1)
+    
+    Returns:
+        Image bytes if found, None otherwise
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT image_data
+            FROM training_images
+            WHERE class_name = %s
+            ORDER BY uploaded_at DESC
+            LIMIT %s
+        """, (class_name, limit))
+        
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        return None
+    except Exception as e:
+        raise e
+    finally:
+        return_db_connection(conn)
+
+
 def get_images_for_training(class_name: Optional[str] = None) -> List[Tuple[int, bytes, str]]:
     """
     Retrieve images from database for training.
@@ -294,6 +326,54 @@ def update_training_run(run_id: int, status: str, metrics: dict = None, model_pa
         conn.commit()
     except Exception as e:
         conn.rollback()
+        raise e
+    finally:
+        return_db_connection(conn)
+
+
+def get_training_runs(limit: int = 10) -> List[dict]:
+    """
+    Get list of training runs, ordered by most recent first.
+    
+    Args:
+        limit: Maximum number of runs to return (default: 10)
+    
+    Returns:
+        List of training run dictionaries with id, started_at, completed_at, 
+        status, metrics, and model_path
+    """
+    conn = get_db_connection()
+    try:
+        import json
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, started_at, completed_at, status, metrics, model_path
+            FROM training_runs
+            ORDER BY started_at DESC
+            LIMIT %s
+        """, (limit,))
+        
+        runs = []
+        for row in cursor.fetchall():
+            # Handle metrics - JSONB is already deserialized by psycopg2 to a dict
+            metrics = row[4]
+            if metrics is not None and isinstance(metrics, str):
+                # If it's a string (unlikely with JSONB), parse it
+                metrics = json.loads(metrics)
+            # If it's already a dict (normal case), use it directly
+            
+            run_dict = {
+                'id': row[0],
+                'started_at': row[1].isoformat() if row[1] else None,
+                'completed_at': row[2].isoformat() if row[2] else None,
+                'status': row[3],
+                'metrics': metrics,
+                'model_path': row[5]
+            }
+            runs.append(run_dict)
+        
+        return runs
+    except Exception as e:
         raise e
     finally:
         return_db_connection(conn)

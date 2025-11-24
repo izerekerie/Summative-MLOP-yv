@@ -10,6 +10,9 @@
     "Textile Trash",
     "Vegetation"
   ],
-  "img_size": [227, 227],
-  "model_path": "models/waste_classifier_final.keras"
+  "img_size": [
+    224,
+    224
+  ],
+  "model_path": "/Users/gahamanyi/Documents/alu/Neural network/Summative-MLOP/models/efficientnetb0_waste_classifier_final.h5"
 }

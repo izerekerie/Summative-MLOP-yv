@@ -211,24 +211,6 @@ def load_model(model_path: str = None) -> tf.keras.Model:
         except FileNotFoundError:
             pass
         
-        # If still None, try default paths (.keras format)
-        if not model_path or not Path(model_path).exists():
-            # Get models directory
-            models_dir = Path(__file__).parent.parent / 'models'
-            possible_paths = [
-                # Try .keras format
-                models_dir / 'waste_classifier_final.keras',
-                # Relative paths from current working directory
-                Path('models/waste_classifier_final.keras'),
-                # Colab paths
-                Path('/content/drive/MyDrive/waste-classification/models/waste_classifier_final.keras'),
-            ]
-            
-            for path in possible_paths:
-                if path.exists():
-                    model_path = str(path)
-                    break
-        
         if not model_path or not Path(model_path).exists():
             searched_paths = [
                 str(Path(__file__).parent.parent / 'models'),

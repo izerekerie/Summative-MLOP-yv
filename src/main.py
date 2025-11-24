@@ -26,7 +26,8 @@ from fastapi.responses import JSONResponse
 from prediction import load_model, get_class_names, get_img_size, predict_image, predict_batch
 from preprocessing import upload_image_to_db, upload_images_batch, VALID_CLASSES
 from model import retrain_model
-from database import create_tables
+from database import create_tables, get_training_runs, get_example_image_for_class
+from fastapi.responses import Response
 
 
 # Initialize FastAPI app
@@ -103,6 +104,7 @@ async def root():
             "/upload": "POST - Upload image to database for retraining",
             "/upload/batch": "POST - Upload multiple images to database",
             "/retrain": "POST - Trigger model retraining",
+            "/retrain/runs": "GET - List retraining runs",
             "/health": "GET - Check API health",
             "/classes": "GET - Get list of class names",
         }
@@ -155,6 +157,38 @@ async def get_classes():
             raise HTTPException(status_code=503, detail=f"Could not load classes: {str(e)}")
         return {"classes": class_names_list, "num_classes": len(class_names_list)}
     return {"classes": class_names, "num_classes": len(class_names)}
+
+
+@app.get("/classes/{class_name}/example")
+async def get_class_example(class_name: str):
+    """
+    Get an example image for a specific class.
+    
+    Args:
+        class_name: Name of the class
+    
+    Returns:
+        Image file as response
+    """
+    if class_name not in VALID_CLASSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid class name. Valid classes: {', '.join(VALID_CLASSES)}"
+        )
+    
+    try:
+        image_bytes = get_example_image_for_class(class_name, limit=1)
+        if image_bytes is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No example image found for class: {class_name}"
+            )
+        
+        return Response(content=image_bytes, media_type="image/jpeg")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving example: {str(e)}")
 
 
 @app.post("/predict")
@@ -356,9 +390,31 @@ async def trigger_retraining(background_tasks: BackgroundTasks):
     background_tasks.add_task(retrain_task)
     
     return {
-        "message": "Model retraining started in background",
+        "message": "Model retraining started in background it will take approximately 5 to 10 minutes to complete",
         "status": "started"
     }
+
+
+@app.get("/retrain/runs")
+async def list_training_runs(limit: int = 10):
+    """
+    Get list of retraining runs to check status.
+    
+    Args:
+        limit: Maximum number of runs to return (default: 10)
+    
+    Returns:
+        List of training runs with status, timestamps, and metrics
+    """
+    try:
+        runs = get_training_runs(limit=limit)
+        return {
+            "runs": runs,
+            "total": len(runs),
+            "message": "Use this endpoint to check if retraining is complete. Status can be 'started', 'completed', or 'failed'."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving training runs: {str(e)}")
 
 
 if __name__ == "__main__":
