@@ -7,6 +7,5 @@ python-multipart
 psycopg2-binary
 numpy
 pandas
-matplotlib
 seaborn
 dotenv
