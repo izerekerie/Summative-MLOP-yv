@@ -1,4 +1,4 @@
-tensorflow-cpu==2.14.0
+tensorflow
 fastapi
 uvicorn
 pillow
@@ -8,4 +8,4 @@ psycopg2-binary
 numpy
 pandas
 seaborn
-python-dotenv
+dotenv
