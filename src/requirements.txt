@@ -1,4 +1,4 @@
-tensorflow-cpu
+tensorflow
 fastapi
 uvicorn
 python-multipart

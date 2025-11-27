@@ -58,7 +58,7 @@ def initialize_model():
     
     try:
         print("Attempting to load model...")
-        model = load_model("/models/efficientnetb0_waste_classifier.h5")
+        model = load_model("models/efficientnetb0_waste_classifier.h5")
         class_names = get_class_names()
         img_size = (224, 224)
         print("Model initialized successfully!")

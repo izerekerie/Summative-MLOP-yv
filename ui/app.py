@@ -18,7 +18,6 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://0.0.0.0:8000")
 # Page configuration
 st.set_page_config(
     page_title="Waste Classification System",
-    page_icon="♻️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -95,13 +94,13 @@ def get_model_uptime():
     # For demo, we'll use current health status
     health = check_backend_health()
     if health and health.get("status") == "healthy":
-        return "Online", "🟢"
-    return "Offline", "🔴"
+        return "Online"
+    return "Offline"
 
 
 def main():
     """Main application."""
-    st.markdown('<h1 class="main-header">♻️ Waste Classification System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">Waste Classification System</h1>', unsafe_allow_html=True)
     
     # Sidebar navigation
     page = st.sidebar.selectbox(
@@ -127,14 +126,14 @@ def main():
 
 def show_dashboard(health, classes):
     """Dashboard page showing model uptime and status."""
-    st.header("📊 Dashboard")
+    st.header("Dashboard")
     
     # Model Status
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        status, icon = get_model_uptime()
-        st.metric("Model Status", f"{icon} {status}")
+        status = get_model_uptime()
+        st.metric("Model Status", status)
     
     with col2:
         if health:
@@ -152,10 +151,10 @@ def show_dashboard(health, classes):
     
     with col4:
         if health and health.get("status") == "healthy":
-            uptime_status = "🟢 Online"
+            uptime_status = "Online"
             st.metric("Uptime", uptime_status)
         else:
-            uptime_status = "🔴 Offline"
+            uptime_status = "Offline"
             st.metric("Uptime", uptime_status)
     
     st.divider()
@@ -164,37 +163,30 @@ def show_dashboard(health, classes):
     st.subheader("System Health")
     if health:
         if health.get("status") == "healthy":
-            st.success(f"✅ Backend is healthy. Model loaded: {health.get('model_loaded', False)}")
+            st.success(f"Backend is healthy. Model loaded: {health.get('model_loaded', False)}")
             st.json(health)
         else:
-            st.error(f"❌ Backend is unhealthy: {health.get('message', 'Unknown error')}")
+            st.error(f"Backend is unhealthy: {health.get('message', 'Unknown error')}")
     else:
-        st.error("❌ Cannot connect to backend. Please check if the server is running.")
+        st.error("Cannot connect to backend. Please check if the server is running.")
         st.info(f"Backend URL: {BACKEND_URL}")
     
     # Recent Training Runs
     st.subheader("Recent Training Runs")
-    
-    # Check if retraining is in progress
-    retraining_in_progress = hasattr(st.session_state, 'retraining_in_progress') and st.session_state.retraining_in_progress
-    
-    if retraining_in_progress:
-        st.info("⏳ Retraining is currently in progress. Training run data will be updated after completion.")
+    runs = get_training_runs(limit=5)
+    if runs:
+        runs_df = pd.DataFrame(runs)
+        st.dataframe(runs_df[['id', 'started_at', 'completed_at', 'status']], use_container_width=True)
     else:
-        runs = get_training_runs(limit=5)
-        if runs:
-            runs_df = pd.DataFrame(runs)
-            st.dataframe(runs_df[['id', 'started_at', 'completed_at', 'status']], use_container_width=True)
-        else:
-            st.info("No training runs found.")
+        st.info("No training runs found.")
 
 
 def show_prediction(health, classes):
     """Prediction page for uploading images and getting predictions."""
-    st.header("🔮 Prediction")
+    st.header("Prediction")
     
     if not health or health.get("status") != "healthy":
-        st.error("❌ Backend is not available. Please check the server status.")
+        st.error("Backend is not available. Please check the server status.")
         return
     
     st.subheader("Upload Image for Classification")
@@ -212,7 +204,7 @@ def show_prediction(health, classes):
             st.image(uploaded_file, caption="Uploaded Image", use_container_width=True)
         
         with col2:
-            if st.button("🔍 Predict", type="primary"):
+            if st.button("Predict", type="primary"):
                 with st.spinner("Processing prediction..."):
                     try:
                         # Reset file pointer
@@ -223,7 +215,7 @@ def show_prediction(health, classes):
                         if response.status_code == 200:
                             result = response.json()
                             
-                            st.success("✅ Prediction Complete!")
+                            st.success("Prediction Complete!")
                             
                             # Display prediction
                             predicted_label = result.get("label", "Unknown")
@@ -256,17 +248,17 @@ def show_prediction(health, classes):
                                 # Table
                                 st.dataframe(prob_df, use_container_width=True)
                         else:
-                            st.error(f"❌ Prediction failed: {response.text}")
+                            st.error(f"Prediction failed: {response.text}")
                     except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+                        st.error(f"Error: {str(e)}")
 
 
 def show_upload_data(health, classes):
     """Upload data page for adding training images."""
-    st.header("📤 Upload Training Data")
+    st.header("Upload Training Data")
     
     if not health:
-        st.error("❌ Backend is not available. Please check the server status.")
+        st.error("Backend is not available. Please check the server status.")
         return
     
     # st.subheader("Single Image Upload")
@@ -334,7 +326,7 @@ def show_upload_data(health, classes):
                 )
                 st.session_state.class_assignments[file.name] = selected_class
         
-        if st.button("📤 Upload All Images", type="primary"):
+        if st.button("Upload All Images", type="primary"):
             with st.spinner("Uploading images..."):
                 try:
                     # Build class names list
@@ -362,20 +354,20 @@ def show_upload_data(health, classes):
                     
                     if response.status_code == 200:
                         result = response.json()
-                        st.success(f"✅ Successfully uploaded {result.get('total', 0)} images!")
+                        st.success(f"Successfully uploaded {result.get('total', 0)} images!")
                         st.json(result)
                     else:
-                        st.error(f"❌ Upload failed: {response.text}")
+                        st.error(f"Upload failed: {response.text}")
                 except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
+                    st.error(f"Error: {str(e)}")
 
 
 def show_retraining(health):
     """Retraining page for triggering and monitoring retraining."""
-    st.header("🔄 Model Retraining")
+    st.header("Model Retraining")
     
     if not health:
-        st.error("❌ Backend is not available. Please check the server status.")
+        st.error("Backend is not available. Please check the server status.")
         return
     
     # Initialize session state for retraining
@@ -395,19 +387,19 @@ def show_retraining(health):
         
         # Show different UI based on retraining status
         if st.session_state.retraining_in_progress:
-            st.warning("⏳ Retraining is currently in progress. Please wait...")
-            if st.button("🛑 Mark as Complete", help="Click if retraining finished"):
-                st.session_state.retraining_in_progress = False
-                st.cache_data.clear()
-                st.rerun()
+            st.warning("Retraining is currently in progress. Please wait...")
+            # if st.button("🛑 Mark as Complete", help="Click if retraining finished"):
+            #     st.session_state.retraining_in_progress = False
+            #     st.cache_data.clear()
+            #     st.rerun()
         else:
-            if st.button("🚀 Start Retraining", type="primary"):
+            if st.button("Start Retraining", type="primary"):
                 with st.spinner("Starting retraining..."):
                     try:
                         response = requests.post(f"{BACKEND_URL}/retrain", timeout=10)
                         if response.status_code == 200:
                             result = response.json()
-                            st.success(f"✅ {result.get('message')}")
+                            st.success(f"{result.get('message')}")
                             st.balloons()
                             # Mark retraining as in progress
                             st.session_state.retraining_in_progress = True
@@ -415,47 +407,29 @@ def show_retraining(health):
                             st.cache_data.clear()
                             st.rerun()
                         else:
-                            st.error(f"❌ Failed to start retraining: {response.text}")
+                            st.error(f"Failed to start retraining: {response.text}")
                     except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+                        st.error(f"Error: {str(e)}")
     
     with col2:
         st.subheader("Training Status")
         
         # Only show refresh button if not retraining
         if not st.session_state.retraining_in_progress:
-            if st.button("🔄 Refresh Status"):
+            if st.button("Refresh Status"):
                 st.cache_data.clear()
         else:
-            st.info("🔄 Auto-refresh disabled during retraining to prevent interruption")
+            st.info("Auto-refresh disabled during retraining to prevent interruption")
             if st.session_state.last_retraining_start:
                 elapsed = datetime.now() - st.session_state.last_retraining_start
-                st.write(f"⏱️ Retraining started: {elapsed.seconds // 60}m {elapsed.seconds % 60}s ago")
+                st.write(f"Retraining started: {elapsed.seconds // 60}m {elapsed.seconds % 60}s ago")
         
         # Only fetch training runs if not currently retraining
         if not st.session_state.retraining_in_progress:
             runs = get_training_runs(limit=10)
         else:
-            # Periodically check if retraining has completed
-            if st.button("🔍 Check if Retraining Completed", help="Check backend for completion status"):
-                with st.spinner("Checking retraining status..."):
-                    try:
-                        # Force fetch to check status
-                        recent_runs = get_training_runs(limit=1, force_fetch=True)
-                        if recent_runs:
-                            latest_run = recent_runs[0]
-                            if latest_run.get('status') in ['completed', 'failed']:
-                                st.session_state.retraining_in_progress = False
-                                st.success("✅ Retraining process detected as completed!")
-                                st.cache_data.clear()
-                                st.rerun()
-                            else:
-                                st.info(f"⏳ Retraining still in progress. Status: {latest_run.get('status', 'unknown')}")
-                    except Exception as e:
-                        st.warning(f"Could not check status: {str(e)}")
-            
             runs = []
-            st.info("📊 Training run data will be available after retraining completes")
+            st.info("Training run data will be available after retraining completes")
         if runs:
             # Filter for most recent
             latest_run = runs[0] if runs else None
@@ -463,13 +437,13 @@ def show_retraining(health):
             if latest_run:
                 status = latest_run.get('status', 'unknown')
                 if status == 'completed':
-                    st.success(f"✅ Status: {status.upper()}")
+                    st.success(f"Status: {status.upper()}")
                 elif status == 'failed':
-                    st.error(f"❌ Status: {status.upper()}")
+                    st.error(f"Status: {status.upper()}")
                 elif status == 'started':
-                    st.warning(f"⏳ Status: {status.upper()}")
+                    st.warning(f"Status: {status.upper()}")
                 else:
-                    st.info(f"ℹ️ Status: {status.upper()}")
+                    st.info(f"Status: {status.upper()}")
                 
                 st.write(f"**Started:** {latest_run.get('started_at', 'N/A')}")
                 st.write(f"**Completed:** {latest_run.get('completed_at', 'In Progress')}")
@@ -523,14 +497,14 @@ def get_example_image_for_class(class_name):
 
 def show_visualizations(health, classes):
     """Visualizations page showing data insights."""
-    st.header("📈 Data Visualizations")
+    st.header("Data Visualizations")
     
     if not health:
-        st.error("❌ Backend is not available. Please check the server status.")
+        st.error("Backend is not available. Please check the server status.")
         return
     
     # Class Information Section
-    st.subheader("📚 Waste Classification Classes")
+    st.subheader("Waste Classification Classes")
     st.markdown("""
     The model can classify waste into **9 distinct categories**. Each category represents 
     a different type of waste material that requires specific handling and recycling processes.
@@ -586,7 +560,7 @@ def show_visualizations(health, classes):
                             )
                         else:
                             st.caption(
-                                "📷 No example image available. "
+                                "No example image available. "
                                 "Upload images to see examples here."
                             )
                         
@@ -595,31 +569,19 @@ def show_visualizations(health, classes):
                         )
                         st.write(description)
                         
-                        # Icon/emoji for each class type
-                        class_icons = {
-                            "Cardboard": "📦",
-                            "Food Organics": "🍎",
-                            "Glass": "🍶",
-                            "Metal": "🥫",
-                            "Miscellaneous Trash": "🗑️",
-                            "Paper": "📄",
-                            "Plastic": "🧴",
-                            "Textile Trash": "👕",
-                            "Vegetation": "🌿"
-                        }
-                        icon = class_icons.get(class_name, "📋")
-                        st.markdown(f"**Category Icon:** {icon}")
+                        # Category type
+                        st.markdown(f"**Category:** {class_name}")
                         
                         # Recycling info
                         recyclable_classes = [
                             "Cardboard", "Glass", "Metal", "Paper", "Plastic"
                         ]
                         if class_name in recyclable_classes:
-                            st.success("♻️ Recyclable")
+                            st.success("Recyclable")
                         elif class_name in ["Food Organics", "Vegetation"]:
-                            st.info("🌱 Compostable")
+                            st.info("Compostable")
                         else:
-                            st.warning("⚠️ Special handling required")
+                            st.warning("Special handling required")
 
 
 if __name__ == "__main__":
