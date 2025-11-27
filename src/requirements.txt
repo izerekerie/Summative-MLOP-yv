@@ -1,12 +1,12 @@
 tensorflow
-scipy
-h5py
-protobuf
-typing-extensions
 fastapi
 uvicorn
+pillow
+scikit-learn
 python-multipart
 psycopg2-binary
 numpy
 pandas
-dotenv
+matplotlib
+seaborn
+python-dotenv

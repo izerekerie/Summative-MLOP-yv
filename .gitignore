@@ -19,7 +19,6 @@ ENV/
 .env
 
 # IDE / Editor folders
-.vscode/
 .idea/
 *.swp
 
@@ -55,3 +54,4 @@ dmypy.json
 
 # Render / Deployment
 *.sqlite3
+.gitignore
